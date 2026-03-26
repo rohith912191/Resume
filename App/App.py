@@ -168,7 +168,7 @@ def run():
     
     # (Logo, Heading, Sidebar etc)
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    logo_path = os.path.join(script_dir, 'Logo', 'AI.jpeg')
+    logo_path = os.path.join(script_dir, 'Logo', 'Ai.jpeg')
     img = Image.open(logo_path)
     st.image(img)
     st.markdown("<h1 style='text-align: center; color: #021659;'>AI Resume Rohith</h1>", unsafe_allow_html=True)
