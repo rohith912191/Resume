@@ -7,11 +7,12 @@ import streamlit as st # core package used in this project
 import pandas as pd
 import base64, random
 import time,datetime
+import tempfile
+import os
 try:
     import pymysql
 except ImportError:
     pymysql = None
-import os
 import sys
 import socket
 import platform
@@ -156,7 +157,7 @@ def insertf_data(feed_name,feed_email,feed_score,comments,Timestamp):
 
 st.set_page_config(
    page_title="AI Resume Analyzer",
-   page_icon='./Logo/recommend.png',
+   page_icon='📄',
 )
 
 
@@ -166,7 +167,9 @@ st.set_page_config(
 def run():
     
     # (Logo, Heading, Sidebar etc)
-    img = Image.open('./Logo/AI.jpeg')
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    logo_path = os.path.join(script_dir, 'Logo', 'AI.jpeg')
+    img = Image.open(logo_path)
     st.image(img)
     st.markdown("<h1 style='text-align: center; color: #021659;'>AI Resume Rohith</h1>", unsafe_allow_html=True)
     st.sidebar.markdown("# Choose Something...")
@@ -283,7 +286,9 @@ def run():
                 time.sleep(4)
         
             ### saving the uploaded resume to folder
-            save_image_path = './Uploaded_Resumes/'+pdf_file.name
+            # Use tempfile for cloud compatibility
+            temp_dir = tempfile.gettempdir()
+            save_image_path = os.path.join(temp_dir, pdf_file.name)
             pdf_name = pdf_file.name
             with open(save_image_path, "wb") as f:
                 f.write(pdf_file.getbuffer())
