@@ -261,16 +261,25 @@ def run():
         sec_token = secrets.token_urlsafe(12)
         host_name = socket.gethostname()
         ip_add = socket.gethostbyname(host_name)
-        dev_user = os.getlogin()
+        try:
+            dev_user = os.getlogin()
+        except (OSError, AttributeError):
+            dev_user = "Unknown"  # For cloud environments
         os_name_ver = platform.system() + " " + platform.release()
-        g = geocoder.ip('me')
-        latlong = g.latlng
-        geolocator = Nominatim(user_agent="http")
-        location = geolocator.reverse(latlong, language='en')
-        address = location.raw['address']
-        cityy = address.get('city', '')
-        statee = address.get('state', '')
-        countryy = address.get('country', '')  
+        try:
+            g = geocoder.ip('me')
+            latlong = g.latlng
+            geolocator = Nominatim(user_agent="http")
+            location = geolocator.reverse(latlong, language='en')
+            address = location.raw['address']
+            cityy = address.get('city', '')
+            statee = address.get('state', '')
+            countryy = address.get('country', '')  
+        except Exception as e:
+            print(f"Geolocation error: {e}")
+            cityy = "Unknown"
+            statee = "Unknown"
+            countryy = "Unknown"
         city = cityy
         state = statee
         country = countryy
