@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: ai-resume-analyzer
+    runtime: python
+    pythonVersion: 3.10
+    buildCommand: pip install -r requirements.txt
+    startCommand: bash start.sh
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: true
