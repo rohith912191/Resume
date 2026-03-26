@@ -1,11 +1,9 @@
 import sys
 import os
 
-# Add the App directory to the path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'App'))
+# Get the directory of this file
+script_dir = os.path.dirname(os.path.abspath(__file__))
+app_file = os.path.join(script_dir, 'App', 'App.py')
 
-# Run the main app
-from App.App import run
-
-if __name__ == '__main__':
-    run()
+# Execute the App.py file
+exec(open(app_file).read())
