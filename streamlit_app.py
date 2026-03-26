@@ -1,9 +1,14 @@
 import sys
 import os
 
-# Get the directory of this file
+# Set up paths properly
 script_dir = os.path.dirname(os.path.abspath(__file__))
-app_file = os.path.join(script_dir, 'App', 'App.py')
+app_dir = os.path.join(script_dir, 'App')
 
-# Execute the App.py file
-exec(open(app_file).read())
+# Change to App directory for relative imports to work
+os.chdir(app_dir)
+sys.path.insert(0, app_dir)
+sys.path.insert(0, script_dir)
+
+# Now execute App.py
+exec(open(os.path.join(app_dir, 'App.py')).read())
