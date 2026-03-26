@@ -167,10 +167,29 @@ st.set_page_config(
 def run():
     
     # (Logo, Heading, Sidebar etc)
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    logo_path = os.path.join(script_dir, 'Logo', 'Ai.jpeg')
-    img = Image.open(logo_path)
-    st.image(img)
+    try:
+        # Try multiple possible paths for the logo
+        possible_paths = [
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'Logo', 'Ai.jpeg'),
+            os.path.join(os.getcwd(), 'App', 'Logo', 'Ai.jpeg'),
+            os.path.join(os.getcwd(), 'Logo', 'Ai.jpeg'),
+            'Logo/Ai.jpeg'
+        ]
+        
+        logo_path = None
+        for path in possible_paths:
+            if os.path.exists(path):
+                logo_path = path
+                break
+        
+        if logo_path:
+            img = Image.open(logo_path)
+            st.image(img)
+        else:
+            st.warning("Logo image not found")
+    except Exception as e:
+        st.warning(f"Could not load logo: {e}")
+    
     st.markdown("<h1 style='text-align: center; color: #021659;'>AI Resume Rohith</h1>", unsafe_allow_html=True)
     st.sidebar.markdown("# Choose Something...")
     activities = ["User", "Feedback", "About", "Admin"]
