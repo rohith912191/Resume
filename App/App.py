@@ -166,6 +166,7 @@ st.set_page_config(
 def run():
     
     # (Logo, Heading, Sidebar etc)
+    img = Image.open('./Logo/AI.jpeg')
     st.image(img)
     st.markdown("<h1 style='text-align: center; color: #021659;'>AI Resume Rohith</h1>", unsafe_allow_html=True)
     st.sidebar.markdown("# Choose Something...")
