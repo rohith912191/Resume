@@ -278,13 +278,22 @@ def run():
         act_mail = st.text_input('Mail*')
         act_mob  = st.text_input('Mobile Number*')
         sec_token = secrets.token_urlsafe(12)
-        host_name = socket.gethostname()
-        ip_add = socket.gethostbyname(host_name)
+        
+        # Get system info with fallbacks for cloud
+        try:
+            host_name = socket.gethostname()
+            ip_add = socket.gethostbyname(host_name)
+        except Exception as e:
+            host_name = "Unknown"
+            ip_add = "Unknown"
+        
         try:
             dev_user = os.getlogin()
         except (OSError, AttributeError):
             dev_user = "Unknown"  # For cloud environments
+        
         os_name_ver = platform.system() + " " + platform.release()
+        
         try:
             g = geocoder.ip('me')
             latlong = g.latlng
@@ -299,6 +308,7 @@ def run():
             cityy = "Unknown"
             statee = "Unknown"
             countryy = "Unknown"
+        
         city = cityy
         state = statee
         country = countryy
