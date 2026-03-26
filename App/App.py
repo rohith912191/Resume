@@ -7,7 +7,10 @@ import streamlit as st # core package used in this project
 import pandas as pd
 import base64, random
 import time,datetime
-import pymysql
+try:
+    import pymysql
+except ImportError:
+    pymysql = None
 import os
 import sys
 import socket
@@ -104,13 +107,17 @@ connection = None
 cursor = None
 DB_AVAILABLE = False
 
-try:
-    connection = pymysql.connect(host='localhost',user='root',password='123456',db='cv')
-    cursor = connection.cursor()
-    DB_AVAILABLE = True
-except Exception as e:
-    print(f"Warning: Could not connect to database: {e}")
-    print("The app will run without database functionality")
+if pymysql is not None:
+    try:
+        connection = pymysql.connect(host='localhost',user='root',password='123456',db='cv')
+        cursor = connection.cursor()
+        DB_AVAILABLE = True
+    except Exception as e:
+        print(f"Warning: Could not connect to database: {e}")
+        print("The app will run without database functionality")
+        DB_AVAILABLE = False
+else:
+    print("Warning: pymysql not installed. Database functionality disabled.")
     DB_AVAILABLE = False
 
 
@@ -159,7 +166,6 @@ st.set_page_config(
 def run():
     
     # (Logo, Heading, Sidebar etc)
-    img = Image.open('./Logo/AI.jpeg')
     st.image(img)
     st.markdown("<h1 style='text-align: center; color: #021659;'>AI Resume Rohith</h1>", unsafe_allow_html=True)
     st.sidebar.markdown("# Choose Something...")
