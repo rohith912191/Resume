@@ -101,24 +101,41 @@ def course_recommender(course_list):
 
 ###### Database Stuffs ######
 
+import os
+# Cloud database configuration
+DATABASE_URL = os.getenv('DATABASE_URL', None)
 
 # sql connector
-# Try to connect to database, but allow app to run without it
 connection = None
 cursor = None
 DB_AVAILABLE = False
 
-if pymysql is not None:
+if pymysql is not None and DATABASE_URL:
     try:
-        connection = pymysql.connect(host='localhost',user='root',password='123456',db='cv')
+        # Parse PlanetScale/MySQL URL
+        from urllib.parse import urlparse
+        url = urlparse(DATABASE_URL)
+        
+        connection = pymysql.connect(
+            host=url.hostname,
+            user=url.username,
+            password=url.password,
+            database=url.path.lstrip('/'),
+            ssl_verify_cert=True,
+            ssl_verify_identity=True
+        )
         cursor = connection.cursor()
         DB_AVAILABLE = True
+        print("Connected to cloud database successfully!")
     except Exception as e:
-        print(f"Warning: Could not connect to database: {e}")
+        print(f"Warning: Could not connect to cloud database: {e}")
         print("The app will run without database functionality")
         DB_AVAILABLE = False
 else:
-    print("Warning: pymysql not installed. Database functionality disabled.")
+    if not DATABASE_URL:
+        print("Warning: DATABASE_URL environment variable not set")
+    if pymysql is None:
+        print("Warning: pymysql not installed")
     DB_AVAILABLE = False
 
 
