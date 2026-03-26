@@ -3,10 +3,10 @@ Custom resume parser that works independently without complex ML dependencies
 """
 import re
 import io
-from pdfminer3.layout import LAParams, LTTextBox
-from pdfminer3.pdfpage import PDFPage
-from pdfminer3.pdfinterp import PDFResourceManager, PDFPageInterpreter
-from pdfminer3.converter import TextConverter
+from pdfminer.layout import LAParams, LTTextBox
+from pdfminer.pdfpage import PDFPage
+from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
+from pdfminer.converter import TextConverter
 
 # Common skills list
 COMMON_SKILLS = [
