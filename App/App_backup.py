@@ -9,10 +9,7 @@ import base64, random
 import time,datetime
 import tempfile
 import os
-try:
-    import pymysql
-except ImportError:
-    pymysql = None
+import sqlite3
 import sys
 import socket
 import platform
@@ -41,8 +38,45 @@ from streamlit_tags import st_tags
 from PIL import Image
 # pre stored data for prediction purposes
 from Courses import ds_course,web_course,android_course,ios_course,uiux_course,resume_videos,interview_videos
+        latlong TEXT,
+        city TEXT,
+        state TEXT,
+        country TEXT,
+        act_name TEXT NOT NULL,
+        act_mail TEXT NOT NULL,
+        act_mob TEXT NOT NULL,
+        Name TEXT NOT NULL,
+        Email_ID TEXT NOT NULL,
+        resume_score TEXT NOT NULL,
+        Timestamp TEXT NOT NULL,
+        Page_no TEXT NOT NULL,
+        Predicted_Field TEXT NOT NULL,
+        User_level TEXT NOT NULL,
+        Actual_skills TEXT NOT NULL,
+        Recommended_skills TEXT NOT NULL,
+        Recommended_courses TEXT NOT NULL,
+        pdf_name TEXT NOT NULL
+    )''')
+    
+    # Create user_feedback table
+    cursor.execute('''CREATE TABLE IF NOT EXISTS user_feedback (
+        ID INTEGER PRIMARY KEY AUTOINCREMENT,
+        feed_name TEXT NOT NULL,
+        feed_email TEXT NOT NULL,
+        feed_score TEXT NOT NULL,
+        comments TEXT,
+        Timestamp TEXT NOT NULL
+    )''')
+    
+    conn.commit()
+    conn.close()
 
-###### Preprocessing functions ######
+# Call init_db at startup
+init_db()
+
+# Database connection function
+def get_db_connection():
+    return sqlite3.connect(DB_FILE)
 
 
 # Generates a link allowing the data in a given panda dataframe to be downloaded in csv format 
@@ -101,26 +135,11 @@ def course_recommender(course_list):
 
 ###### Database Stuffs ######
 
-import os
-import sqlite3
-
-# SQLite database file path
-DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resume_analyzer.db')
-
-# SQLite connector
-connection = None
+# Database connection
+DB_AVAILABLE = True
 cursor = None
-DB_AVAILABLE = False
-
-try:
-    connection = sqlite3.connect(DB_FILE)
-    cursor = connection.cursor()
-    DB_AVAILABLE = True
-    print("Connected to SQLite database successfully!")
-except Exception as e:
-    print(f"Warning: Could not connect to SQLite database: {e}")
-    print("The app will run without database functionality")
-    DB_AVAILABLE = False
+connection = get_db_connection()
+cursor = connection.cursor()
 
 
 # inserting miscellaneous data, fetched results, prediction and recommendation into user_data table
@@ -130,10 +149,7 @@ def insert_data(sec_token,ip_add,host_name,dev_user,os_name_ver,latlong,city,sta
     try:
         DB_table_name = 'user_data'
         insert_sql = "INSERT INTO " + DB_table_name + """
-    (sec_token, ip_add, host_name, dev_user, os_name_ver, latlong, city, state, country,
-     act_name, act_mail, act_mob, Name, Email_ID, resume_score, Timestamp, Page_no,
-     Predicted_Field, User_level, Actual_skills, Recommended_skills, Recommended_courses, pdf_name)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"""
+    VALUES (NULL,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
         rec_values = (str(sec_token),str(ip_add),host_name,dev_user,os_name_ver,str(latlong),city,state,country,act_name,act_mail,act_mob,name,email,str(res_score),timestamp,str(no_of_pages),reco_field,cand_level,skills,recommended_skills,courses,pdf_name)
         cursor.execute(insert_sql, rec_values)
         connection.commit()
@@ -148,8 +164,7 @@ def insertf_data(feed_name,feed_email,feed_score,comments,Timestamp):
     try:
         DBf_table_name = 'user_feedback'
         insertfeed_sql = "INSERT INTO " + DBf_table_name + """
-    (feed_name, feed_email, feed_score, comments, Timestamp)
-    VALUES (?,?,?,?,?)"""
+    VALUES (NULL,%s,%s,%s,%s,%s)"""
         rec_values = (feed_name, feed_email, feed_score, comments, Timestamp)
         cursor.execute(insertfeed_sql, rec_values)
         connection.commit()
@@ -218,53 +233,7 @@ def run():
 
     ###### Creating Database and Table ######
 
-    if DB_AVAILABLE and cursor is not None:
-        try:
-            # Create table user_data and user_feedback (SQLite doesn't need CREATE DATABASE)
-            DB_table_name = 'user_data'
-            table_sql = "CREATE TABLE IF NOT EXISTS " + DB_table_name + """
-                        (ID INTEGER PRIMARY KEY AUTOINCREMENT,
-                        sec_token TEXT NOT NULL,
-                        ip_add TEXT,
-                        host_name TEXT,
-                        dev_user TEXT,
-                        os_name_ver TEXT,
-                        latlong TEXT,
-                        city TEXT,
-                        state TEXT,
-                        country TEXT,
-                        act_name TEXT NOT NULL,
-                        act_mail TEXT NOT NULL,
-                        act_mob TEXT NOT NULL,
-                        Name TEXT NOT NULL,
-                        Email_ID TEXT NOT NULL,
-                        resume_score TEXT NOT NULL,
-                        Timestamp TEXT NOT NULL,
-                        Page_no TEXT NOT NULL,
-                        Predicted_Field TEXT NOT NULL,
-                        User_level TEXT NOT NULL,
-                        Actual_skills TEXT NOT NULL,
-                        Recommended_skills TEXT NOT NULL,
-                        Recommended_courses TEXT NOT NULL,
-                        pdf_name TEXT NOT NULL
-                        );
-                    """
-            cursor.execute(table_sql)
-
-
-            DBf_table_name = 'user_feedback'
-            tablef_sql = "CREATE TABLE IF NOT EXISTS " + DBf_table_name + """
-                        (ID INTEGER PRIMARY KEY AUTOINCREMENT,
-                            feed_name TEXT NOT NULL,
-                            feed_email TEXT NOT NULL,
-                            feed_score TEXT NOT NULL,
-                            comments TEXT,
-                            Timestamp TEXT NOT NULL
-                        );
-                    """
-            cursor.execute(tablef_sql)
-        except Exception as e:
-            print(f"Error creating database tables: {e}")
+    # Tables are created in init_db() function above
 
 
     ###### CODE FOR CLIENT SIDE (USER) ######
@@ -294,27 +263,15 @@ def run():
         
         try:
             g = geocoder.ip('me')
-            if g.latlng:
-                latlong = g.latlng
-                geolocator = Nominatim(user_agent="resume-analyzer")
-                location = geolocator.reverse(latlong, language='en')
-                if location and location.raw.get('address'):
-                    address = location.raw['address']
-                    cityy = address.get('city', '')
-                    statee = address.get('state', '')
-                    countryy = address.get('country', '')
-                else:
-                    cityy = "Unknown"
-                    statee = "Unknown"
-                    countryy = "Unknown"
-            else:
-                latlong = "Unknown"
-                cityy = "Unknown"
-                statee = "Unknown"
-                countryy = "Unknown"
+            latlong = g.latlng
+            geolocator = Nominatim(user_agent="http")
+            location = geolocator.reverse(latlong, language='en')
+            address = location.raw['address']
+            cityy = address.get('city', '')
+            statee = address.get('state', '')
+            countryy = address.get('country', '')  
         except Exception as e:
             print(f"Geolocation error: {e}")
-            latlong = "Unknown"
             cityy = "Unknown"
             statee = "Unknown"
             countryy = "Unknown"
@@ -713,22 +670,17 @@ def run():
                 query = 'select * from user_feedback'        
                 plotfeed_data = pd.read_sql(query, connection)                        
 
-                if len(plotfeed_data) > 0:
-                    # fetching feed_score from the query and getting the unique values and total value count 
-                    feed_scores = plotfeed_data['feed_score'].dropna()
-                    feed_scores = feed_scores[feed_scores != '']
-                    if len(feed_scores) > 0:
-                        labels = feed_scores.unique()
-                        values = feed_scores.value_counts()
 
-                        # plotting pie chart for user ratings
-                        st.subheader("**Past User Rating's**")
-                        fig = px.pie(values=values, names=labels, title="Chart of User Rating Score From 1 - 5", color_discrete_sequence=px.colors.sequential.Aggrnyl)
-                        st.plotly_chart(fig)
-                    else:
-                        st.info("No feedback ratings available yet.")
-                else:
-                    st.info("No feedback data available yet.")
+                # fetching feed_score from the query and getting the unique values and total value count 
+                labels = plotfeed_data.feed_score.unique()
+                values = plotfeed_data.feed_score.value_counts()
+
+
+                # plotting pie chart for user ratings
+                st.subheader("**Past User Rating's**")
+                fig = px.pie(values=values, names=labels, title="Chart of User Rating Score From 1 - 5", color_discrete_sequence=px.colors.sequential.Aggrnyl)
+                st.plotly_chart(fig)
+
 
                 #  Fetching Comment History
                 cursor.execute('select feed_name, comments from user_feedback')
@@ -796,10 +748,6 @@ def run():
                         ### Fetch miscellaneous data from user_data(table) and convert it into dataframe
                         cursor.execute('''SELECT ID, ip_add, resume_score, Predicted_Field, User_level, city, state, country from user_data''')
                         datanalys = cursor.fetchall()
-
-                        # Convert bytes to strings if necessary
-                        datanalys = [[str(item) if isinstance(item, bytes) else item for item in row] for row in datanalys]
-
                         plot_data = pd.DataFrame(datanalys, columns=['Idt', 'IP_add', 'resume_score', 'Predicted_Field', 'User_Level', 'City', 'State', 'Country'])
                         
                         ### Total Users Count with a Welcome Message
@@ -807,163 +755,106 @@ def run():
                         st.success("Welcome AGGANNAGARI ROHITH REDDY ! Total %d " % values + " User's Have Used Our Tool : )")                
                         
                         ### Fetch user data from user_data(table) and convert it into dataframe
-                        try:
-                            cursor.execute('''SELECT ID, sec_token, ip_add, act_name, act_mail, act_mob, Predicted_Field, Timestamp, Name, Email_ID, resume_score, Page_no, pdf_name, User_level, Actual_skills, Recommended_skills, Recommended_courses, city, state, country, latlong, os_name_ver, host_name, dev_user from user_data''')
-                            data = cursor.fetchall()
-                            st.write(f"DEBUG: Fetched {len(data)} user records")
-                            
-                            if len(data) == 0:
-                                st.header("**User's Data**")
-                                st.info("No user data available yet.")
-                            else:
-                                # Convert bytes to strings if necessary
-                                data = [[str(item) if isinstance(item, bytes) else item for item in row] for row in data]
+                        cursor.execute('''SELECT ID, sec_token, ip_add, act_name, act_mail, act_mob, Predicted_Field, Timestamp, Name, Email_ID, resume_score, Page_no, pdf_name, User_level, Actual_skills, Recommended_skills, Recommended_courses, city, state, country, latlong, os_name_ver, host_name, dev_user from user_data''')
+                        data = cursor.fetchall()                
 
-                                st.header("**User's Data**")
-                                df = pd.DataFrame(data, columns=['ID', 'Token', 'IP Address', 'Name', 'Mail', 'Mobile Number', 'Predicted Field', 'Timestamp',
-                                                                 'Predicted Name', 'Predicted Mail', 'Resume Score', 'Total Page',  'File Name',
-                                                                 'User Level', 'Actual Skills', 'Recommended Skills', 'Recommended Course',
-                                                                 'City', 'State', 'Country', 'Lat Long', 'Server OS', 'Server Name', 'Server User',])
-                                
-                                ### Viewing the dataframe
-                                st.dataframe(df)
-                        except Exception as e:
-                            st.error(f"Error loading user data: {e}")
-                            print(f"User data error: {e}")
+                        st.header("**User's Data**")
+                        df = pd.DataFrame(data, columns=['ID', 'Token', 'IP Address', 'Name', 'Mail', 'Mobile Number', 'Predicted Field', 'Timestamp',
+                                                         'Predicted Name', 'Predicted Mail', 'Resume Score', 'Total Page',  'File Name',   
+                                                         'User Level', 'Actual Skills', 'Recommended Skills', 'Recommended Course',
+                                                         'City', 'State', 'Country', 'Lat Long', 'Server OS', 'Server Name', 'Server User',])
+                        
+                        ### Viewing the dataframe
+                        st.dataframe(df)
                         
                         ### Downloading Report of user_data in csv file
                         st.markdown(get_csv_download_link(df,'User_Data.csv','Download Report'), unsafe_allow_html=True)
 
                         ### Fetch feedback data from user_feedback(table) and convert it into dataframe
-                        try:
-                            cursor.execute('''SELECT * from user_feedback''')
-                            feedback_data = cursor.fetchall()
-                            st.write(f"DEBUG: Fetched {len(feedback_data)} feedback records")
+                        cursor.execute('''SELECT * from user_feedback''')
+                        data = cursor.fetchall()
 
-                            if len(feedback_data) == 0:
-                                st.header("**User's Feedback Data**")
-                                st.info("No feedback data available yet.")
-                                plotfeed_data = pd.DataFrame()
-                            else:
-                                # Convert bytes to strings if necessary
-                                feedback_data = [[str(item) if isinstance(item, bytes) else item for item in row] for row in feedback_data]
+                        st.header("**User's Feedback Data**")
+                        df = pd.DataFrame(data, columns=['ID', 'Name', 'Email', 'Feedback Score', 'Comments', 'Timestamp'])
+                        st.dataframe(df)
 
-                                st.header("**User's Feedback Data**")
-                                plotfeed_data = pd.DataFrame(feedback_data, columns=['ID', 'feed_name', 'feed_email', 'feed_score', 'comments', 'Timestamp'])
-                                st.dataframe(plotfeed_data)
-                        except Exception as e:
-                            st.error(f"Error loading feedback data: {e}")
-                            print(f"Feedback data error: {e}")
-                            plotfeed_data = pd.DataFrame()                        
+                        ### query to fetch data from user_feedback(table)
+                        query = 'select * from user_feedback'
+                        plotfeed_data = pd.read_sql(query, connection)                        
 
                         ### Analyzing All the Data's in pie charts
 
-                        # fetching feed_score from the query and getting the unique values and total value count
-                        if len(plotfeed_data) > 0 and 'feed_score' in plotfeed_data.columns:
-                            feed_scores = plotfeed_data['feed_score'].dropna()
-                            feed_scores = feed_scores[feed_scores != '']
-                            if len(feed_scores) > 0:
-                                labels = feed_scores.unique()
-                                values = feed_scores.value_counts()
+                        # fetching feed_score from the query and getting the unique values and total value count 
+                        labels = plotfeed_data.feed_score.unique()
+                        values = plotfeed_data.feed_score.value_counts()
+                        
+                        # Pie chart for user ratings
+                        st.subheader("**User Rating's**")
+                        fig = px.pie(values=values, names=labels, title="Chart of User Rating Score From 1 - 5 🤗", color_discrete_sequence=px.colors.sequential.Aggrnyl)
+                        st.plotly_chart(fig)
 
-                                # Pie chart for user ratings
-                                st.subheader("**User Rating's**")
-                                fig = px.pie(values=values, names=labels, title="Chart of User Rating Score From 1 - 5 🤗", color_discrete_sequence=px.colors.sequential.Aggrnyl)
-                                st.plotly_chart(fig)
-                            else:
-                                st.info("No feedback ratings available yet.")
-                        else:
-                            st.info("No feedback data available yet.")
+                        # fetching Predicted_Field from the query and getting the unique values and total value count                 
+                        labels = plot_data.Predicted_Field.unique()
+                        values = plot_data.Predicted_Field.value_counts()
 
-                        # fetching Predicted_Field from the query and getting the unique values and total value count
-                        # Filter out NaN and empty values
-                        field_data = plot_data['Predicted_Field'].dropna()
-                        field_data = field_data[field_data != '']
-                        if len(field_data) > 0:
-                            labels = field_data.unique()
-                            values = field_data.value_counts()
+                        # Pie chart for predicted field recommendations
+                        st.subheader("**Pie-Chart for Predicted Field Recommendation**")
+                        fig = px.pie(df, values=values, names=labels, title='Predicted Field according to the Skills 👽', color_discrete_sequence=px.colors.sequential.Aggrnyl_r)
+                        st.plotly_chart(fig)
 
-                            # Pie chart for predicted field recommendations
-                            st.subheader("**Pie-Chart for Predicted Field Recommendation**")
-                            fig = px.pie(values=values, names=labels, title='Predicted Field according to the Skills 👽', color_discrete_sequence=px.colors.sequential.Aggrnyl_r)
-                            st.plotly_chart(fig)
+                        # fetching User_Level from the query and getting the unique values and total value count                 
+                        labels = plot_data.User_Level.unique()
+                        values = plot_data.User_Level.value_counts()
 
-                        # fetching User_Level from the query and getting the unique values and total value count
-                        # Filter out NaN and empty values
-                        level_data = plot_data['User_Level'].dropna()
-                        level_data = level_data[level_data != '']
-                        if len(level_data) > 0:
-                            labels = level_data.unique()
-                            values = level_data.value_counts()
+                        # Pie chart for User's👨‍💻 Experienced Level
+                        st.subheader("**Pie-Chart for User's Experienced Level**")
+                        fig = px.pie(df, values=values, names=labels, title="Pie-Chart 📈 for User's 👨‍💻 Experienced Level", color_discrete_sequence=px.colors.sequential.RdBu)
+                        st.plotly_chart(fig)
 
-                            # Pie chart for User's👨‍💻 Experienced Level
-                            st.subheader("**Pie-Chart for User's Experienced Level**")
-                            fig = px.pie(values=values, names=labels, title="Pie-Chart 📈 for User's 👨‍💻 Experienced Level", color_discrete_sequence=px.colors.sequential.RdBu)
-                            st.plotly_chart(fig)
+                        # fetching resume_score from the query and getting the unique values and total value count                 
+                        labels = plot_data.resume_score.unique()                
+                        values = plot_data.resume_score.value_counts()
 
-                        # fetching resume_score from the query and getting the unique values and total value count
-                        # Filter out NaN and empty values
-                        score_data = plot_data['resume_score'].dropna()
-                        score_data = score_data[score_data != '']
-                        if len(score_data) > 0:
-                            labels = score_data.unique()
-                            values = score_data.value_counts()
+                        # Pie chart for Resume Score
+                        st.subheader("**Pie-Chart for Resume Score**")
+                        fig = px.pie(df, values=values, names=labels, title='From 1 to 100 💯', color_discrete_sequence=px.colors.sequential.Agsunset)
+                        st.plotly_chart(fig)
 
-                            # Pie chart for Resume Score
-                            st.subheader("**Pie-Chart for Resume Score**")
-                            fig = px.pie(values=values, names=labels, title='From 1 to 100 💯', color_discrete_sequence=px.colors.sequential.Agsunset)
-                            st.plotly_chart(fig)
-                        # fetching IP_add from the query and getting the unique values and total value count
-                        # Filter out NaN and empty values
-                        ip_data = plot_data['IP_add'].dropna()
-                        ip_data = ip_data[ip_data != '']
-                        if len(ip_data) > 0:
-                            labels = ip_data.unique()
-                            values = ip_data.value_counts()
+                        # fetching IP_add from the query and getting the unique values and total value count 
+                        labels = plot_data.IP_add.unique()
+                        values = plot_data.IP_add.value_counts()
 
-                            # Pie chart for Users
-                            st.subheader("**Pie-Chart for Users App Used Count**")
-                            fig = px.pie(values=values, names=labels, title='Usage Based On IP Address 👥', color_discrete_sequence=px.colors.sequential.matter_r)
-                            st.plotly_chart(fig)
+                        # Pie chart for Users
+                        st.subheader("**Pie-Chart for Users App Used Count**")
+                        fig = px.pie(df, values=values, names=labels, title='Usage Based On IP Address 👥', color_discrete_sequence=px.colors.sequential.matter_r)
+                        st.plotly_chart(fig)
 
-                        # fetching City from the query and getting the unique values and total value count
-                        # Filter out NaN and empty values
-                        city_data = plot_data['City'].dropna()
-                        city_data = city_data[city_data != '']
-                        if len(city_data) > 0:
-                            labels = city_data.unique()
-                            values = city_data.value_counts()
+                        # fetching City from the query and getting the unique values and total value count 
+                        labels = plot_data.City.unique()
+                        values = plot_data.City.value_counts()
 
-                            # Pie chart for City
-                            st.subheader("**Pie-Chart for City**")
-                            fig = px.pie(values=values, names=labels, title='Usage Based On City 🌆', color_discrete_sequence=px.colors.sequential.Jet)
-                            st.plotly_chart(fig)
+                        # Pie chart for City
+                        st.subheader("**Pie-Chart for City**")
+                        fig = px.pie(df, values=values, names=labels, title='Usage Based On City 🌆', color_discrete_sequence=px.colors.sequential.Jet)
+                        st.plotly_chart(fig)
 
-                        # fetching State from the query and getting the unique values and total value count
-                        # Filter out NaN and empty values
-                        state_data = plot_data['State'].dropna()
-                        state_data = state_data[state_data != '']
-                        if len(state_data) > 0:
-                            labels = state_data.unique()
-                            values = state_data.value_counts()
+                        # fetching State from the query and getting the unique values and total value count 
+                        labels = plot_data.State.unique()
+                        values = plot_data.State.value_counts()
 
-                            # Pie chart for State
-                            st.subheader("**Pie-Chart for State**")
-                            fig = px.pie(values=values, names=labels, title='Usage Based on State 🚉', color_discrete_sequence=px.colors.sequential.PuBu_r)
-                            st.plotly_chart(fig)
+                        # Pie chart for State
+                        st.subheader("**Pie-Chart for State**")
+                        fig = px.pie(df, values=values, names=labels, title='Usage Based on State 🚉', color_discrete_sequence=px.colors.sequential.PuBu_r)
+                        st.plotly_chart(fig)
 
-                        # fetching Country from the query and getting the unique values and total value count
-                        # Filter out NaN and empty values
-                        country_data = plot_data['Country'].dropna()
-                        country_data = country_data[country_data != '']
-                        if len(country_data) > 0:
-                            labels = country_data.unique()
-                            values = country_data.value_counts()
+                        # fetching Country from the query and getting the unique values and total value count 
+                        labels = plot_data.Country.unique()
+                        values = plot_data.Country.value_counts()
 
-                            # Pie chart for Country
-                            st.subheader("**Pie-Chart for Country**")
-                            fig = px.pie(values=values, names=labels, title='Usage Based on Country 🌏', color_discrete_sequence=px.colors.sequential.Purpor_r)
-                            st.plotly_chart(fig)
+                        # Pie chart for Country
+                        st.subheader("**Pie-Chart for Country**")
+                        fig = px.pie(df, values=values, names=labels, title='Usage Based on Country 🌏', color_discrete_sequence=px.colors.sequential.Purpor_r)
+                        st.plotly_chart(fig)
                     except Exception as e:
                         st.error(f"Error loading admin data: {e}")
                         print(f"Admin error: {e}")

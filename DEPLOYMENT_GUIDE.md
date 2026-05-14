@@ -3,7 +3,30 @@
 ## Live Deployment
 Your app is deployed at: **https://ai-resume-analyzer.onrender.com**
 
-## Setup Cloud Database (PlanetScale)
+## Option 1: SQLite (Simplest - No External Database Required)
+
+### Step 1: Deploy to Render
+1. Go to https://render.com
+2. Connect your GitHub repository
+3. Create a new Web Service
+4. Select your repository
+5. Configure:
+   - **Name:** ai-resume-analyzer
+   - **Runtime:** Python 3
+   - **Build Command:** `pip install -r requirements.txt`
+   - **Start Command:** `bash start.sh`
+6. Click "Create Web Service"
+7. Your app will be deployed automatically!
+
+### Features
+- Upload & analyze resumes
+- Get skill recommendations
+- Course suggestions
+- Admin dashboard (User/Rohith@91)
+- User feedback system
+- **Database:** SQLite (file-based, no setup required)
+
+## Option 2: PlanetScale (Cloud Database)
 
 ### Step 1: Create PlanetScale Account
 1. Go to https://planetscale.com
@@ -52,8 +75,8 @@ Your app now has:
 ## Support
 If issues occur:
 1. Check Render logs
-2. Check PlanetScale connection
-3. Verify DATABASE_URL is correct
+2. Check PlanetScale connection (if using Option 2)
+3. Verify DATABASE_URL is correct (if using Option 2)
 
 ---
 Built with ❤️ by Rohith
