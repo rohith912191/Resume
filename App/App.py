@@ -104,6 +104,11 @@ def course_recommender(course_list):
 import os
 # Cloud database configuration
 DATABASE_URL = os.getenv('DATABASE_URL', None)
+if not DATABASE_URL:
+    # Default local MySQL connection for this project
+    # Password contains @ so it must be URL-encoded as %40
+    DATABASE_URL = "mysql://root:Rohith%4091@127.0.0.1/CV"
+    print("DATABASE_URL not set. Using local fallback:", DATABASE_URL)
 
 # sql connector
 connection = None
@@ -112,23 +117,28 @@ DB_AVAILABLE = False
 
 if pymysql is not None and DATABASE_URL:
     try:
-        # Parse PlanetScale/MySQL URL
-        from urllib.parse import urlparse
+        # Parse PlanetScale/MySQL URL or local MySQL URL
+        from urllib.parse import urlparse, unquote
         url = urlparse(DATABASE_URL)
+        username = unquote(url.username) if url.username else None
+        password = unquote(url.password) if url.password else None
         
-        connection = pymysql.connect(
-            host=url.hostname,
-            user=url.username,
-            password=url.password,
-            database=url.path.lstrip('/'),
-            ssl_verify_cert=True,
-            ssl_verify_identity=True
-        )
+        connect_args = {
+            'host': url.hostname,
+            'user': username,
+            'password': password,
+            'database': url.path.lstrip('/')
+        }
+        if url.hostname not in ('127.0.0.1', 'localhost'):
+            connect_args['ssl_verify_cert'] = True
+            connect_args['ssl_verify_identity'] = True
+
+        connection = pymysql.connect(**connect_args)
         cursor = connection.cursor()
         DB_AVAILABLE = True
-        print("Connected to cloud database successfully!")
+        print("Connected to database successfully!")
     except Exception as e:
-        print(f"Warning: Could not connect to cloud database: {e}")
+        print(f"Warning: Could not connect to database: {e}")
         print("The app will run without database functionality")
         DB_AVAILABLE = False
 else:
@@ -173,7 +183,7 @@ def insertf_data(feed_name,feed_email,feed_score,comments,Timestamp):
 
 
 st.set_page_config(
-   page_title="AI Resume Analyzer",
+   page_title="Resume Analyzer",
    page_icon='📄',
 )
 
@@ -207,7 +217,7 @@ def run():
     except Exception as e:
         st.warning(f"Could not load logo: {e}")
     
-    st.markdown("<h1 style='text-align: center; color: #021659;'>AI Resume Rohith</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: #021659;'>Resume Analyzer</h1>", unsafe_allow_html=True)
     st.sidebar.markdown("# Choose Something...")
     activities = ["User", "Feedback", "About", "Admin"]
     choice = st.sidebar.selectbox("Choose among the given options:", activities)
@@ -749,7 +759,7 @@ def run():
     ###### CODE FOR ABOUT PAGE ######
     elif choice == 'About':   
 
-        st.subheader("**About The Tool - AI RESUME ANALYZER**")
+        st.subheader("**About The Tool - Resume Analyzer**")
 
         st.markdown('''
 

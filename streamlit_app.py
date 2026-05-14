@@ -13,4 +13,5 @@ sys.path.insert(0, script_dir)
 os.chdir(app_dir)
 
 # Now execute App.py
-exec(open(os.path.join(app_dir, 'App.py')).read())
+with open(os.path.join(app_dir, 'App.py'), 'r', encoding='utf-8') as f:
+    exec(f.read())

@@ -3,7 +3,7 @@
 ![AI-Resume-Analyzer](https://socialify.git.ci/rohithreddy/AI-Resume-Analyzer/image?description=1&descriptionEditable=AI%20Resume%20Analyzer%20Project&font=Raleway&language=1&pattern=Plus&theme=Light)
 
 <div align="center">
-  <h1>🌴 AI RESUME ANALYZER 🌴</h1>
+  <h1>🌴 Resume Analyzer 🌴</h1>
   <p>A Tool for Resume Analysis, Predictions and Recommendations</p>
   <!-- Badges -->
   <p>
@@ -31,7 +31,7 @@
       📧 rohith912191@gmail.com | 📱 9121916107 | 📍 Hyderabad | 🎓 Anurag University
      </small>
   </p>
-  <small align="justify">🚀 AI Resume Analyzer - A Modern Tool for Resume Analysis and Career Recommendations
+  <small align="justify">🚀 Resume Analyzer - A Modern Tool for Resume Analysis and Career Recommendations
   </small>
 </div><br/><br/>
 
@@ -297,5 +297,5 @@ For queries or contributions
 
 ![Screenshot](./screenshots/admin/7-pielocation.png)
 
-### Built with 🤍 AI RESUME ANALYZER by <a href="#">AGGANNAGARI ROHITH REDDY</a>
+### Built with 🤍 Resume Analyzer by <a href="#">AGGANNAGARI ROHITH REDDY</a>
 **Email:** rohith912191@gmail.com | **Phone:** 9121916107 | **University:** Anurag University, Hyderabad

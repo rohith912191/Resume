@@ -1,4 +1,4 @@
-# AI Resume Analyzer - Deployment Guide
+# Resume Analyzer - Deployment Guide
 
 ## Live Deployment
 Your app is deployed at: **https://ai-resume-analyzer.onrender.com**
